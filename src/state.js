@@ -1,8 +1,9 @@
 
 const { isArray } = Array
 const isObject = value => value && typeof value === 'object'
+const { slice } = Array.prototype
 
-function _setPropValue (target, prop, value, path, listeners, listenersAny, targetIsArray = false) {
+function _setPropValue (target, prop, value, path, listeners, listenersAny) {
     const previousValue = target[prop]
     const propPath = path ? `${path}.${prop}` : prop
 
@@ -11,7 +12,7 @@ function _setPropValue (target, prop, value, path, listeners, listenersAny, targ
         : value
 
     listeners[propPath]?.forEach(listener => {
-        targetIsArray && prop === 'length'
+        isArray(target) && prop === 'length'
             ? listener(value)
             : listener(value, previousValue)
     })
@@ -19,12 +20,27 @@ function _setPropValue (target, prop, value, path, listeners, listenersAny, targ
     listenersAny.forEach(listener => listener(propPath, value, previousValue))
 }
 
+function _deleteValues (target, prop) {
+    const previousValue = target[prop]
+
+    if (isArray(previousValue)) {
+        for (const i = previousValue.length - 1; i >= 0; i--) {
+            _deleteValues(previousValue, i)
+        }
+        previousValue.splice(0)
+    } else if (isObject(previousValue)) {
+        Object.keys(previousValue).forEach(prop => _deleteValues(previousValue, prop))
+    }
+    delete target[prop]
+
+    return previousValue
+}
+
 function _createProxy (initialData, path, listeners, listenersAny) {
-    const objectIsArray = isArray(initialData)
-    const state = objectIsArray
+    const state = isArray(initialData)
         ? initialData.map(value => {
             if (value && typeof value === 'object') {
-                return _createProxy(value, path, listeners)
+                return _createProxy(value, path, listeners, listenersAny)
             } else {
                 return value
             }
@@ -37,12 +53,12 @@ function _createProxy (initialData, path, listeners, listenersAny) {
 
     return new Proxy (state, {
         set (target, prop, value) {
-            _setPropValue(target, prop, value, path, listeners, listenersAny, objectIsArray)
+            _setPropValue(target, prop, value, path, listeners, listenersAny)
             return true
         },
         deleteProperty (target, prop) {
-            const previousValue = target[prop]
-            delete target[prop]
+            console.log('deleteProperty', target, prop)
+            const previousValue = _deleteValues(target, prop)
             listeners[path ? `${path}.${prop}` : prop]?.forEach(listener => listener(undefined, previousValue))
             return true
         },
