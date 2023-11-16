@@ -86,4 +86,16 @@ describe('StateProxy', () => {
         expect(listenerLength).toBeCalledTimes(2)
         expect(listenerLength).toBeCalledWith(2)
     })
+
+    test('createState.whenAny', () => {
+        const { state, whenAny } = new StateProxy({ foo: 'foo' })
+        const listener = vi.fn()
+
+        whenAny(listener)
+
+        state.foo = 'bar'
+
+        expect(listener).toBeCalledTimes(1)
+        expect(listener).toBeCalledWith('foo', 'bar', 'foo')
+    })
 })

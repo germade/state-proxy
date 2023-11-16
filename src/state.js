@@ -2,12 +2,12 @@
 const { isArray } = Array
 const isObject = value => value && typeof value === 'object'
 
-function _setPropValue (target, prop, value, path, listeners, targetIsArray = false) {
+function _setPropValue (target, prop, value, path, listeners, listenersAny, targetIsArray = false) {
     const previousValue = target[prop]
     const propPath = path ? `${path}.${prop}` : prop
 
     target[prop] = isObject(value)
-        ? _createProxy(value, propPath, listeners)
+        ? _createProxy(value, propPath, listeners, listenersAny)
         : value
 
     listeners[propPath]?.forEach(listener => {
@@ -15,9 +15,11 @@ function _setPropValue (target, prop, value, path, listeners, targetIsArray = fa
             ? listener(value)
             : listener(value, previousValue)
     })
+
+    listenersAny.forEach(listener => listener(propPath, value, previousValue))
 }
 
-function _createProxy (initialData, path, listeners) {
+function _createProxy (initialData, path, listeners, listenersAny) {
     const objectIsArray = isArray(initialData)
     const state = objectIsArray
         ? initialData.map(value => {
@@ -29,13 +31,13 @@ function _createProxy (initialData, path, listeners) {
         })
         : Object.keys(initialData)
             .reduce((state, prop) => {
-                _setPropValue(state, prop, initialData[prop], path, listeners)
+                _setPropValue(state, prop, initialData[prop], path, listeners, listenersAny)
                 return state
             }, {})
 
     return new Proxy (state, {
         set (target, prop, value) {
-            _setPropValue(target, prop, value, path, listeners, objectIsArray)
+            _setPropValue(target, prop, value, path, listeners, listenersAny, objectIsArray)
             return true
         },
         deleteProperty (target, prop) {
@@ -50,15 +52,23 @@ function _createProxy (initialData, path, listeners) {
 export class StateProxy {
     state = null
     #listeners = {}
+    #listenersAny = []
 
     constructor (initialData = {}) {
-        this.state = _createProxy(initialData, null, this.#listeners, true)
+        this.state = _createProxy(initialData, null, this.#listeners, this.#listenersAny, true)
         this.when = this.#when.bind(this)
+        this.whenAny = this.#whenAny.bind(this)
     }
 
     #when (path, listener) {
         this.#listeners[path] ??= []
         this.#listeners[path].push(listener)
+
+        return this
+    }
+
+    #whenAny (listener) {
+        this.#listenersAny.push(listener)
 
         return this
     }
