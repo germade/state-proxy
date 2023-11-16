@@ -56,18 +56,18 @@ export class StateProxy {
 
     constructor (initialData = {}) {
         this.state = _createProxy(initialData, null, this.#listeners, this.#listenersAny, true)
-        this.when = this.#when.bind(this)
-        this.whenAny = this.#whenAny.bind(this)
+        this.onChange = this.#onChange.bind(this)
+        this.onAnyChange = this.#onAnyChange.bind(this)
     }
 
-    #when (path, listener) {
+    #onChange (path, listener) {
         this.#listeners[path] ??= []
         this.#listeners[path].push(listener)
 
         return this
     }
 
-    #whenAny (listener) {
+    #onAnyChange (listener) {
         this.#listenersAny.push(listener)
 
         return this

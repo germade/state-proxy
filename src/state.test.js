@@ -16,42 +16,42 @@ describe('StateProxy', () => {
         expect(state.foo).toBe('bar')
     })
 
-    test('createState.when("foo")', () => {
-        const { state, when } = new StateProxy({ foo: 'foo' })
+    test('createState.onChange("foo")', () => {
+        const { state, onChange } = new StateProxy({ foo: 'foo' })
         const listener = vi.fn()
 
-        when('foo', listener)
+        onChange('foo', listener)
 
         state.foo = 'bar'
 
         expect(listener).toBeCalled()
     })
 
-    test('createState.when("foo.bar"): 0', () => {
-        const { when } = new StateProxy({ foo: { bar: 'bar' } })
+    test('createState.onChange("foo.bar"): 0', () => {
+        const { onChange } = new StateProxy({ foo: { bar: 'bar' } })
         const listener = vi.fn()
 
-        when('foo.bar', listener)
+        onChange('foo.bar', listener)
 
         expect(listener).not.toBeCalled()
     })
 
-    test('createState.when("foo.bar"): 1', () => {
-        const { state, when } = new StateProxy({ foo: 'foo' })
+    test('createState.onChange("foo.bar"): 1', () => {
+        const { state, onChange } = new StateProxy({ foo: 'foo' })
         const listener = vi.fn()
 
-        when('foo.bar', listener)
+        onChange('foo.bar', listener)
 
         state.foo = { bar: 'bar' }
 
         expect(listener).toBeCalledTimes(1)
     })
 
-    test('createState.when("foo.bar"): 2', () => {
-        const { state, when } = new StateProxy({ foo: 'foo' })
+    test('createState.onChange("foo.bar"): 2', () => {
+        const { state, onChange } = new StateProxy({ foo: 'foo' })
         const listener = vi.fn()
 
-        when('foo.bar', listener)
+        onChange('foo.bar', listener)
 
         state.foo = {}
         state.foo.bar = 'bar'
@@ -65,13 +65,13 @@ describe('StateProxy', () => {
         expect(listener).toBeCalledWith('baz', 'bar')
     })
 
-    test('createState.when("foo.bar"): []', () => {
-        const { state, when } = new StateProxy({ foo: [] })
+    test('createState.onChange("foo.bar"): []', () => {
+        const { state, onChange } = new StateProxy({ foo: [] })
         const listener = vi.fn()
         const listenerLength = vi.fn()
 
-        when('foo.0', listener)
-        when('foo.length', listenerLength)
+        onChange('foo.0', listener)
+        onChange('foo.length', listenerLength)
 
         state.foo.push('bar')
 
@@ -87,11 +87,11 @@ describe('StateProxy', () => {
         expect(listenerLength).toBeCalledWith(2)
     })
 
-    test('createState.whenAny', () => {
-        const { state, whenAny } = new StateProxy({ foo: 'foo' })
+    test('createState.onAnyChange', () => {
+        const { state, onAnyChange } = new StateProxy({ foo: 'foo' })
         const listener = vi.fn()
 
-        whenAny(listener)
+        onAnyChange(listener)
 
         state.foo = 'bar'
 
