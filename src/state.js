@@ -1,11 +1,16 @@
 
 const { isArray } = Array
 const isObject = value => value && typeof value === 'object'
-const { slice } = Array.prototype
 
 function _setPropValue (target, prop, value, path, listeners, listenersAny) {
     const previousValue = target[prop]
     const propPath = path ? `${path}.${prop}` : prop
+
+    if (isObject(previousValue)) {
+        for (const _prop in previousValue) {
+            _deleteValues(previousValue, _prop, propPath, listeners, listenersAny)
+        }
+    }
 
     target[prop] = isObject(value)
         ? _createProxy(value, propPath, listeners, listenersAny)
@@ -20,20 +25,23 @@ function _setPropValue (target, prop, value, path, listeners, listenersAny) {
     listenersAny.forEach(listener => listener(propPath, value, previousValue))
 }
 
-function _deleteValues (target, prop) {
+function _deleteValues (target, prop, path, listeners, listenersAny) {
+    console.log('_deleteValues', { target, prop, path })
     const previousValue = target[prop]
+    const propPath = path ? `${path}.${prop}` : prop
 
-    if (isArray(previousValue)) {
-        for (const i = previousValue.length - 1; i >= 0; i--) {
-            _deleteValues(previousValue, i)
+    if (isObject(previousValue)) {
+        for (const _prop in previousValue) {
+            if (previousValue.hasOwnProperty(_prop)) {
+                _deleteValues(previousValue, _prop, propPath, listeners, listenersAny)
+            }
         }
-        previousValue.splice(0)
-    } else if (isObject(previousValue)) {
-        Object.keys(previousValue).forEach(prop => _deleteValues(previousValue, prop))
     }
     delete target[prop]
+    // console.log(`delete ${propPath}`)
 
-    return previousValue
+    listeners[propPath]?.forEach(listener => listener(undefined, previousValue, true))
+    listenersAny.forEach(listener => listener(propPath, undefined, previousValue, true))
 }
 
 function _createProxy (initialData, path, listeners, listenersAny) {
@@ -57,9 +65,7 @@ function _createProxy (initialData, path, listeners, listenersAny) {
             return true
         },
         deleteProperty (target, prop) {
-            console.log('deleteProperty', target, prop)
-            const previousValue = _deleteValues(target, prop)
-            listeners[path ? `${path}.${prop}` : prop]?.forEach(listener => listener(undefined, previousValue))
+            _deleteValues(target, prop, path, listeners, listenersAny)
             return true
         },
     })
